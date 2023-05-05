@@ -8,16 +8,25 @@
   let coordnates = {};
 //FIM ELEMENTOS
 
-updateBtn.click(function(){
+updateBtn.click(async function(){
   const cepStart = start_input.val();
   const cepEnd = destiny_input.val();
   const numberStart = startNumber_input.val();
   const numberEnd = destinyNumber_input.val();
-  generate_coordnate(cepStart, numberStart, cepEnd, numberEnd);
+  await generate_coordnate(cepStart, numberStart, cepEnd, numberEnd);
+  uriBingMaps = `https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?origins=${coordnates.numberCoordnates.valor1}&destinations=${coordnates.numberCoordnates.valor2}&distanceUnit=km&travelMode=driving&key=As8A6TWbETZAMDMHAxl0aL7KqPNuoCihWG1Uw8FxF7I5dk6mQ6GNP-M19O0aDGkV`;
+  $.ajax({
+    url : uriBingMaps,
+    type : 'GET',
+    success : (response)=>{
+      const travel_distance = response.resourceSets[0].resources[0].results[0].travelDistance;
+      resultBox.html(travel_distance+' Km');
+    },
+  })
 });
 async function generate_coordnate(cepStart, numberStart, cepEnd, numberEnd){
   await coordnate_text_link(cepStart, numberStart).then(async (responseStart)=>{
-    await coordnate_text_link(cepEnd, numberEnd).then((responseEnd)=>{
+    await coordnate_text_link(cepEnd, numberEnd).then(async (responseEnd)=>{
         coordnates = {
           link : {
           'firstLink' : responseStart,
@@ -25,20 +34,30 @@ async function generate_coordnate(cepStart, numberStart, cepEnd, numberEnd){
           },
           numberCoordnates : {},
         };
+        for(var i = 1; i <= 2; i++){
+          await pullCord((i == 1) ? coordnates.link.firstLink : coordnates.link.secondLink, i);
+        }
     })
   });
-  for(var i = 1; i <= 2; i++){
-    pullCord((i == 1) ? coordnates.link.firstLink : coordnates.link.secondLink, i);
-  }
+  console.log('-1');
+  
+  console.log('1');
 }
-function pullCord(link, time){
-  $.ajax({
-    url: link,
-    type : 'GET',
-    success : (Response)=>{
-      coordnates.numberCoordnates['valor' + time] = Response[0].lat+','+Response[0].lon;
-    },
-  })
+async function pullCord(link, time) {
+  return new Promise((resolve, reject) => {
+    $.ajax({
+      url: link,
+      type: 'GET',
+      success: (Response) => {
+        coordnates.numberCoordnates['valor' + time] = Response[0].lat + ',' + Response[0].lon;
+        console.log('0');
+        resolve();
+      },
+      error: (error) => {
+        reject(error);
+      },
+    });
+  });
 }
 function coordnate_text_link(cep,num){
   return new Promise((resolve)=>{
